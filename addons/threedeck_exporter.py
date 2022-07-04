@@ -24,8 +24,8 @@ bl_info = {
     "category": "Object",
 }
 
-# serverprefix = "https://3deck.io/"
-serverprefix = "http://localhost:3000/"
+serverprefix = "https://3deck.io/"
+# serverprefix = "http://localhost:3000/"
 
 def printcon(data):
     for window in bpy.context.window_manager.windows:
@@ -46,7 +46,13 @@ class ThreeDeckExporter(AddonPreferences):
         description="If this model exists in 3Deck, overwrite it",
         default=True,
     )
-        
+    
+    d3_exportanimations: BoolProperty(
+        name="Export Animations",
+        description="Export animations in the model",
+        default=True,
+    )
+
     d3_email: StringProperty(
         name="Email Address",
         description="3Deck email address",
@@ -63,6 +69,7 @@ class ThreeDeckExporter(AddonPreferences):
         layout = self.layout
         layout.label(text="This is a preferences view for our add-on")
         layout.prop(self, "d3_overwrite")
+        layout.prop(self, "d3_exportanimations")
         layout.prop(self, "d3_email")
         layout.prop(self, "d3_uploadcode")
 
@@ -87,6 +94,7 @@ class THREED_export_main(Panel):
         operator = sfile.active_operator
 
         layout.prop(operator, 'd3_overwrite')
+        layout.prop(operator, "d3_exportanimations")
         layout.prop(operator, 'd3_modelname')
         layout.prop(operator, 'd3_email')
         layout.prop(operator, 'd3_uploadcode')
@@ -109,6 +117,12 @@ class Export3Deck(bpy.types.Operator, ExportHelper):
     d3_overwrite: BoolProperty(
         name="Overwrite Existing",
         description="If this model exists in 3Deck, overwrite it",
+        default=True,
+    )
+
+    d3_exportanimations: BoolProperty(
+        name="Export Animations",
+        description="Export animations in the model",
         default=True,
     )
 
@@ -142,7 +156,7 @@ class Export3Deck(bpy.types.Operator, ExportHelper):
 
     def exportGLB(self):
         printcon("Exporting temporary files to " + bpy.app.tempdir+"/export.glb")
-        bpy.ops.export_scene.gltf(filepath=bpy.app.tempdir+"export.glb",check_existing=False, use_active_scene=True, use_visible=True, export_animations=False, use_renderable=True,export_format="GLB", export_tangents=False, export_image_format="JPEG", export_cameras=False, export_lights=False)
+        bpy.ops.export_scene.gltf(filepath=bpy.app.tempdir+"export.glb",check_existing=False, use_active_scene=True, use_visible=True, export_animations=self.d3_exportanimations, use_renderable=True,export_format="GLB", export_tangents=False, export_image_format="JPEG", export_cameras=False, export_lights=False)
 
         bpy.context.scene.render.filepath = bpy.app.tempdir+"thumb.png"
         bpy.context.scene.render.resolution_x = 800 #perhaps set resolution in code
@@ -181,6 +195,8 @@ class Export3Deck(bpy.types.Operator, ExportHelper):
         addon_prefs = preferences.addons["threedeck_exporter"].preferences
         self.d3_email = addon_prefs.d3_email
         self.d3_uploadcode = addon_prefs.d3_uploadcode
+        self.d3_overwrite = addon_prefs.d3_overwrite
+        self.d3_exportanimations = addon_prefs.d3_exportanimations
         return ExportHelper.invoke(self, context, event)    
 
     def execute(self, context):
